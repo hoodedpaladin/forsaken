@@ -538,8 +538,8 @@ bool joysticks_init(void)
 		if(!joy)
 		{
 			DebugPrintf(
-				"joysticks_init: joystick (%d), '%s' failed to open\n",
-				i, SDL_JoystickName(i)
+				"joysticks_init: joystick (%d) failed to open\n",
+				i
 			);
 			continue;
 		}
@@ -555,7 +555,7 @@ bool joysticks_init(void)
 		// TODO
 		// JoystickInfo[i].NumBalls = SDL_JoystickNumBalls(joy);
 
-		JoystickInfo[i].Name = strdup( SDL_JoystickName(i) );
+		JoystickInfo[i].Name = strdup( SDL_JoystickName(joy) );
 
 		DebugPrintf( 
 			"joysticks_init: joystick (%d), name='%s', axises=%d, buttons=%d, hats=%d\n", 
