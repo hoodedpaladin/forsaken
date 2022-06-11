@@ -12,15 +12,20 @@
 #include "texture.h"
 #include "file.h"
 #include <stdio.h>
+#include "glew.h"
 #include "main_sdl.h"
 #include "SDL_opengl.h"
+
+#if defined(NO_SDL_GLEXT) || defined(GL_GLEXT_LEGACY)
+#error something wrong with libraries
+#endif  /* GL_GLEXT_LEGACY */
 
 extern render_info_t render_info;
 
 extern GLenum render_last_gl_error;
 
 // TODO invalid pointer
-#if defined(MACOSX) && SDL_VERSION_ATLEAST(2,0,0)
+#if (defined(MACOSX) && SDL_VERSION_ATLEAST(2,0,0)) || defined(WIN32)
 #define gluErrorString(e)\
 	(e == 0x0500 ? "invalid enumerant" : \
 	(e == 0x0501 ? "invalid value" : \

@@ -140,7 +140,7 @@ static void set_opengl_settings( void )
 #if SDL_VERSION_ATLEAST(2,0,0)
 #if GL == 3
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	// TODO - this isn't only mac osx specific is it ?
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 #endif
@@ -257,16 +257,6 @@ static bool create_video_surface( u_int32_t window_flags, u_int32_t renderer_fla
 		Msg("main_sdl: failed to create window: %s\n",SDL_GetError());
 		return false;
 	}
-	render_info.renderer = SDL_CreateRenderer(
-		render_info.window,
-		-1,
-		renderer_flags
-		);
-	if(!render_info.renderer)
-	{
-		Msg("main_sdl: failed to create renderer: %s\n",SDL_GetError());
-		return false;
-	}
 
   #else
 	render_info.screen = SDL_SetVideoMode(
@@ -337,6 +327,8 @@ bool sdl_init_video( void )
 
 	set_window_title();
 
+	render_info.context = SDL_GL_CreateContext(render_info.window);
+
 	if (!render_init( &render_info ))
 	{
 		Msg("render_init() returned false");
@@ -349,7 +341,7 @@ bool sdl_init_video( void )
 void sdl_render_present( render_info_t * info )
 {
 #if SDL_VERSION_ATLEAST(2,0,0)
-	SDL_RenderPresent(info->renderer);
+	SDL_GL_SwapWindow(info->window);
 #else
 	SDL_GL_SwapBuffers();
 #endif

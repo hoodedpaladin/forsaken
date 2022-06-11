@@ -72,6 +72,7 @@ typedef struct {
 	stereo_position_t     stereo_position;
 	float                 stereo_eye_sep;
 	float                 stereo_focal_dist;
+	SDL_GLContext         context;
 } render_info_t;
 
 typedef bool (*RenderCurrentCameraPt) (void);

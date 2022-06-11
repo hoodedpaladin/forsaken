@@ -35,6 +35,7 @@ void input_grab( bool grab )
 		input_grabbed = true;
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_SetWindowGrab( render_info.window, SDL_TRUE );
+		SDL_SetRelativeMouseMode(SDL_TRUE);
 #else
 		SDL_WM_GrabInput( SDL_GRAB_ON );
 #endif
@@ -50,6 +51,7 @@ void input_grab( bool grab )
 #else
 	#if SDL_VERSION_ATLEAST(2,0,0)
 	SDL_SetWindowGrab( render_info.window, grab ? SDL_TRUE : SDL_FALSE );
+		SDL_SetRelativeMouseMode(grab ? SDL_TRUE : SDL_FALSE);
 	#else
 	SDL_WM_GrabInput( grab ? SDL_GRAB_ON : SDL_GRAB_OFF );
 	#endif
@@ -248,8 +250,6 @@ void app_keyboard( SDL_KeyboardEvent * key )
 	if( key->type == SDL_KEYDOWN )
 	{
 		input_buffer_send(
-			key->keysym.unicode ? 
-				key->keysym.unicode :
 				key->keysym.sym
 		);
 	}
@@ -854,6 +854,11 @@ bool handle_events( void )
 			}
 			break;
 
+
+		case SDL_TEXTEDITING:
+		case SDL_TEXTINPUT:
+			// Do nothing
+			break;
 // TODO
 		default:
 			printf("Unknown event type: %d\n",_event.type);

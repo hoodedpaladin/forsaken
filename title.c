@@ -6287,17 +6287,25 @@ KeyDefine( MENUITEM *item, VirtualKeycode key )
 	{
 		if ( key )
 		{
-			kdef->def->key[ kdef->selected_key ] = key;
-			if ( KEY_ON_JOYSTICK( key ) )
+			if (KEY_ON_KEYBOARD(key))
 			{
-				int joystick;
-
-				joystick = KEY_JOYSTICK( key );
-				if ( joystick >= 0 && joystick < Num_Joysticks && JoystickInfo[ joystick ].connected )
+				SDL_Scancode scancode = SDL_GetScancodeFromKey(key);
+				kdef->def->key[kdef->selected_key] = (scancode != 0) ? scancode : key;
+			}
+			else
+			{
+				if (KEY_ON_JOYSTICK(key))
 				{
-					JoystickInfo[ joystick ].assigned = true;
-				}
-			};
+					int joystick;
+
+					joystick = KEY_JOYSTICK(key);
+					if (joystick >= 0 && joystick < Num_Joysticks && JoystickInfo[joystick].connected)
+					{
+						JoystickInfo[joystick].assigned = true;
+					}
+				};
+				kdef->def->key[kdef->selected_key] = key;
+			}
 			PlaySfx( SFX_InGameMenuSelect, 1.0F );
 		}
 		else

@@ -530,7 +530,7 @@ static void detect_caps( void )
 	//check whether anisotropic filtering extension is supported
 	caps.anisotropic = 0.0f;
 
-#if GL < 3
+#if GL < 2
 	if(strstr((char*)glGetString(GL_EXTENSIONS), "GL_EXT_texture_filter_anisotropic"))
 		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &caps.anisotropic );
 #else
@@ -554,6 +554,12 @@ static void detect_caps( void )
 
 bool render_init( render_info_t * info )
 {
+	GLenum err = glewInit();
+	if (err != GLEW_OK)
+	{
+		DebugPrintf("Problem with GLEW init\n");
+		return false;
+	}
 	print_info();
 	detect_caps();
 	if(!set_defaults()) return false;
@@ -561,6 +567,14 @@ bool render_init( render_info_t * info )
 	if(info->wireframe)
 		render_mode_wireframe();
 	info->ok_to_render = true;
+#if GL >= 3
+	{
+		int vao;
+
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
+	}
+#endif
 	return true;
 }
 
