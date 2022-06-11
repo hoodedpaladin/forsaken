@@ -788,7 +788,7 @@ bool FSSetViewPort(render_viewport_t *view)
 void ortho_update ( GLuint current_program )
 {
 	MATRIX m;
-	float left, right, bottom, top, near, far;
+	float left, right, bottom, top, nearvalue, farvalue;
 	GLuint u_ortho_matrix;
 
 	if ( ortho_matrix_needs_update && ( u_ortho_matrix = glGetUniformLocation( current_program, "ortho_proj" ) ) >= 0 )
@@ -797,17 +797,17 @@ void ortho_update ( GLuint current_program )
 		right = render_info.ThisMode.w;
 		bottom = 0.0f;
 		top = render_info.ThisMode.h;
-		near = -1.0f;
-		far = 1.0f;
+		nearvalue = -1.0f;
+		farvalue = 1.0f;
 		memset(&m, 0, sizeof(MATRIX));
 		m._11 = 2.0f/(right-left);
 		// vertical flip ...
 		m._22 = (2.0f/(top-bottom)) * -1.0f;
-		m._33 = -2.0f/(far-near);
+		m._33 = -2.0f/(farvalue-nearvalue);
 		m._14 = -(right+left)/(right-left);
 		// ... and translate to make top left the origin
 		m._24 = -(top+bottom)/(top-bottom) + 2.0f;
-		m._34 = -(far+near)/(far-near);
+		m._34 = -(farvalue+nearvalue)/(farvalue-nearvalue);
 		m._44 = 1.0f;
 		glUniformMatrix4fv( u_ortho_matrix, 1, GL_TRUE, &m );
 		CHECK_GL_ERRORS;

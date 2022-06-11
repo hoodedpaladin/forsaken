@@ -4449,7 +4449,7 @@ bool LoadEnemies( void )
 	char		Ext[ 16 ];
 	COMP_OBJ *	Comp = NULL;
 	COMP_OBJ *	TempComp = NULL;
-	float		OverallTime, MidTime;
+	float		OverallTime = 0, MidTime;
 	u_int16_t		EnemyType;
 	u_int32_t		MagicNumber;
 	u_int32_t		VersionNumber;

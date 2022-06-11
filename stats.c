@@ -44,6 +44,7 @@
 #include "text.h"
 #include "title.h"
 #include "timer.h"
+#include "util.h"
 
 /* external variables */
 extern  BYTE  TeamNumber[MAX_PLAYERS];	// which team each player is on
@@ -314,7 +315,7 @@ void UpdateKillCount(int Killer)
 	switch(KillCounter[Killer])
 	{
 #define MILESTONE_CASE( count, sound, msg ) \
-		case count: \	
+		case count: \
 			if(PlaySound) PlaySfx( sound, 1.0F ); \
    			AddColourMessageToQue( MilestoneMessagesColour, "%s %s (%d KILLS)", prefix, msg, count ); \
 			break;

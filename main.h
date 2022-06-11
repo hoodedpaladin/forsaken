@@ -106,7 +106,6 @@ typedef struct
 #include <string.h>
 #define strcasecmp	_stricmp
 #define strncasecmp _strnicmp
-#define strdup _strdup
 #include <stdio.h>
 #define snprintf	_snprintf
 #include <direct.h>
@@ -143,7 +142,8 @@ typedef struct
 typedef uint8_t  u_int8_t;
 typedef uint16_t u_int16_t;
 typedef uint32_t u_int32_t;
-#include <windef.h>
+#include <WinSock2.h>
+#include <windows.h>
 #else
 // winapi compatibility
 typedef u_int32_t DWORD;

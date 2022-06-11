@@ -5,6 +5,7 @@
 
 #define SAVEGAME_SLOTS
 #ifdef WIN32
+#include <WinSock2.h>
 #include <windows.h>
 #endif
 

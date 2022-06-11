@@ -35,7 +35,12 @@
 #define		O_BINARY 	0 // no such thing on unixa
 #endif
 
+#ifdef WIN32
+#include <io.h>
+#include <stdlib.h>
+#else
 #include <unistd.h>
+#endif
 
 #ifndef S_IREAD
 #define S_IREAD 0400
