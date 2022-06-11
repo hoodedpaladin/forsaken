@@ -50,7 +50,7 @@ bool sdl_init( void )
 	BPP should be left alone to match whatever the desktop is at.
 */
 
-#define NUMBER_MODES 19
+#define NUMBER_MODES 21
 render_display_mode_t video_modes[NUMBER_MODES] = {
 {0,0}, // current video mode of the desktop
 {640,480},
@@ -70,7 +70,9 @@ render_display_mode_t video_modes[NUMBER_MODES] = {
 {1600,1200},
 {1680,1050},
 {1920,1080},
-{1920,1200} 
+{1920,1200},
+{2000,1500},
+{3840,2160},
 };
 
 static void init_video_modes( u_int32_t window_flags )
