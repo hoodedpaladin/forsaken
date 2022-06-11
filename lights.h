@@ -69,6 +69,8 @@ bool	XLight1Group( MLOADHEADER * Mloadheader, u_int16_t group );
 bool	XLightMxloadHeader( MXLOADHEADER * MXloadheader , VECTOR * Pos , float Radius , MATRIX * Matrix );
 bool	XLightMxaloadHeader( MXALOADHEADER * MXAloadheader , VECTOR * Pos , float Radius , MATRIX * Matrix );
 
+#define MAX_PERPIXEL_LIGHTS (256)
+#define MAX_VERTEX_LIGHTS (0)
 
 void	CreateCellColours( MLOADHEADER * Mloadheader );
 COLOR FindNearestCellColour( MLOADHEADER * Mloadheader,VECTOR * Pos, u_int16_t group );

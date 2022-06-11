@@ -282,32 +282,21 @@ static void print_info( void )
 static const char *default_vertex_shader =
 	"#version " GLSL_VERSION "\n"
 	"\n"
-	"uniform bool orthographic;\n"
-	"\n"
 	"uniform mat4 mvp;\n"
-	"uniform mat4 ortho_proj;\n"
+	"uniform mat4 world;\n"
 	"\n"
 	GLSL_VERT_IN " vec3 pos;\n"
-	GLSL_VERT_IN " vec4 tlpos;\n"
 	GLSL_VERT_IN " vec4 vcolor;\n"
 	GLSL_VERT_IN " vec2 vtexc;\n"
 	"\n"
 	GLSL_VERT_OUT " vec4 color;\n"
 	GLSL_VERT_OUT " vec2 texc;\n"
+	GLSL_VERT_OUT " vec4 worldpos;\n"
 	"\n"
 	"void main(void)\n"
 	"{\n"
-	"    if (orthographic)\n"
-	"    {\n"
-// TODO - broken in GL 2
-#if 0
-	"        gl_Position = ortho_proj * tlpos;\n"
-#endif
-	"    }\n"
-	"    else\n"
-	"    {\n"
-	"        gl_Position = mvp * vec4(pos, 1.0);\n"
-	"    }\n"
+	"    gl_Position = mvp * vec4(pos, 1.0);\n"
+	"    worldpos = world * vec4(pos, 1.0);\n"
 	"    color = vcolor.bgra;\n"
 	"    texc = vtexc;\n"
 	"}\n"
@@ -319,7 +308,104 @@ static const char *default_vertex_shader =
 // - texturing (possibly disabled)
 //   - "texturing_enabled" uniform var
 
+#include "lights.h"
+#define STRING(s) #s
+#define STRINGIFY(s) STRING(s)
 static const char *default_fragment_shader =
+	"#version " GLSL_VERSION "\n"
+	"\n"
+	"uniform bool colorkeying_enabled;\n"
+	"uniform bool texturing_enabled;\n"
+	"uniform sampler2D tex;\n"
+	"\n"
+	GLSL_FRAG_IN " vec4 color;\n"
+	GLSL_FRAG_IN " vec2 texc;\n"
+	GLSL_FRAG_IN " vec4 worldpos;\n"
+    "uniform vec4 light_color[" STRINGIFY(MAX_PERPIXEL_LIGHTS) "];\n"
+	"uniform vec3 light_position[" STRINGIFY(MAX_PERPIXEL_LIGHTS) "];\n"
+	"uniform vec4 light_spotdata[" STRINGIFY(MAX_PERPIXEL_LIGHTS) "];\n"
+	"uniform int num_lights;\n"
+	"uniform int num_spotlights;\n"
+	"\n"
+	GLSL_FRAG_OUT " vec4 fcolor;\n"
+	"\n"
+	"void main(void)\n"
+	"{\n"
+	"    vec2 dx;\n"
+	"    vec2 dy;\n"
+	"\n"
+#if GL >= 3
+	"    // This *may* be needed - see:\n"
+	"    // http://www.opengl.org/wiki/GLSL_Sampler\n"
+	"    // but I'm not sure because it's not really clear\n"
+	"    // on just how 'uniform' the control flow has to be\n"
+	"    dx = dFdx(texc);\n"
+	"    dy = dFdy(texc);\n"
+#endif
+	"    if ( texturing_enabled )\n"
+#if GL >= 3
+	"    {\n"
+	"        int i = 0;\n"
+	"        fcolor = color;\n"
+	"        for (; i < num_spotlights; i++)\n"
+	"        {\n"
+    "            float distance = distance(worldpos.xyz, light_position[i]);\n"
+    "            float intensity = max(1.0 - pow((distance / light_color[i].w), 2), 0.0);\n"
+	"            float spotintensity;"
+	"            float theta = dot(light_spotdata[i].xyz, normalize(worldpos.xyz - light_position[i]));\n"
+	"            if (theta < light_spotdata[i].w) continue;\n"
+	"            intensity *= (theta - light_spotdata[i].w) / (1.0 - light_spotdata[i].w);\n"
+	"            fcolor += vec4(light_color[i].x * intensity, light_color[i].y * intensity, light_color[i].z * intensity, 0.0);\n"
+	"        }\n"
+	"        for (; i < num_lights; i++)\n"
+	"        {\n"
+    "            float distance = distance(worldpos.xyz, light_position[i]);\n"
+    "            float intensity = max(1.0 - pow((distance / light_color[i].w), 2), 0.0);\n"
+	"            fcolor += vec4(light_color[i].x * intensity, light_color[i].y * intensity, light_color[i].z * intensity, 0.0);\n"
+	"        }\n"
+	"        fcolor = vec4(clamp(fcolor.x, 0.0, 1.0), clamp(fcolor.y, 0.0, 1.0), clamp(fcolor.z, 0.0, 1.0), fcolor.w);\n"
+	"        fcolor = textureGrad(tex, texc, dx, dy) * fcolor;\n"
+	"    }\n"
+#else
+	"        fcolor = texture2D(tex, vec2(texc.s,texc.t)) * color;\n"
+#endif
+	"    else\n"
+	"        fcolor = color;\n"
+	"    if ( colorkeying_enabled && fcolor.a <= (100.0/255.0) )\n"
+	"        discard;\n"
+#if GL < 3
+        "    gl_FragColor = fcolor;\n"
+#endif
+	"}\n"
+;
+
+static const char *ortho_vertex_shader =
+	"#version " GLSL_VERSION "\n"
+	"\n"
+	"uniform mat4 ortho_proj;\n"
+	"\n"
+	GLSL_VERT_IN " vec4 tlpos;\n"
+	GLSL_VERT_IN " vec4 vcolor;\n"
+	GLSL_VERT_IN " vec2 vtexc;\n"
+	"\n"
+	GLSL_VERT_OUT " vec4 color;\n"
+	GLSL_VERT_OUT " vec2 texc;\n"
+	"\n"
+	"void main(void)\n"
+	"{\n"
+	"    gl_Position = ortho_proj * tlpos;\n"
+	"    color = vcolor.bgra;\n"
+	"    texc = vtexc;\n"
+	"}\n"
+;
+
+// Things a fragment shader must take into account:
+// - color-keying (discard if alpha <= 100/255; don't ask)
+//   - "colorkeying_enabled" uniform var
+// - texturing (possibly disabled)
+//   - "texturing_enabled" uniform var
+
+static const char *ortho_fragment_shader =
 	"#version " GLSL_VERSION "\n"
 	"\n"
 	"uniform bool colorkeying_enabled;\n"
@@ -360,9 +446,8 @@ static const char *default_fragment_shader =
 	"}\n"
 ;
 
-GLuint vertex_shader = 0;
-GLuint fragment_shader = 0;
-GLuint current_program = 0;
+struct shadernums perspective_shader = { 0, };
+struct shadernums ortho_shader = { 0, };
 
 static GLuint new_shader( GLenum type, const char *src, char **log )
 {
@@ -398,7 +483,7 @@ static GLuint new_shader( GLenum type, const char *src, char **log )
 	return shader;
 }
 
-static bool update_shader_program( char **log )
+static bool create_shader_program( const char *vertex_code, const char *frag_code, struct shadernums *shaderinfo, char **log )
 {
 	int link_ok;
 	GLsizei log_size;
@@ -407,36 +492,60 @@ static bool update_shader_program( char **log )
 	if ( info_log )
 		free( info_log );
 
-	if ( current_program )
+	if (shaderinfo->program_num)
 	{
-		glUseProgram( 0 );
-		glDeleteProgram( current_program );
+		glUseProgram(0);
+		glDeleteProgram(shaderinfo->program_num);
+		shaderinfo->program_num = 0;
+	}
+	if (shaderinfo->vert_shader_num)
+	{
+		glUseProgram(0);
+		glDeleteShader(shaderinfo->vert_shader_num);
+		shaderinfo->vert_shader_num = 0;
+	}
+	if (shaderinfo->frag_shader_num)
+	{
+		glUseProgram(0);
+		glDeleteShader(shaderinfo->frag_shader_num);
+		shaderinfo->frag_shader_num = 0;
 	}
 
-	current_program = glCreateProgram();
-	if(!current_program)
+	shaderinfo->vert_shader_num = new_shader(GL_VERTEX_SHADER, vertex_code, log);
+	if (shaderinfo->vert_shader_num == 0)
+	{
+		return false;
+	}
+	shaderinfo->frag_shader_num = new_shader(GL_FRAGMENT_SHADER, frag_code, log);
+	if (shaderinfo->frag_shader_num == 0)
+	{
+		return false;
+	}
+
+	shaderinfo->program_num = glCreateProgram();
+	if(shaderinfo->program_num == 0)
 	{
 		Msg("Failed to create shader program\n");
 		return false;
 	}
+	CHECK_GL_ERRORS;
 
-	glAttachShader( current_program, vertex_shader );
-	glAttachShader( current_program, fragment_shader );
-	glLinkProgram( current_program );
-	glGetProgramiv( current_program, GL_LINK_STATUS, &link_ok );
+	glAttachShader(shaderinfo->program_num, shaderinfo->vert_shader_num);
+	glAttachShader(shaderinfo->program_num, shaderinfo->frag_shader_num);
+	glLinkProgram(shaderinfo->program_num);
+	glGetProgramiv(shaderinfo->program_num, GL_LINK_STATUS, &link_ok );
 	if ( link_ok == GL_FALSE )
 	{
 		if ( log )
 		{
-			glGetProgramiv( current_program, GL_INFO_LOG_LENGTH, &log_size );
+			glGetProgramiv(shaderinfo->program_num, GL_INFO_LOG_LENGTH, &log_size );
 			info_log = malloc( log_size );
-			glGetProgramInfoLog( current_program, log_size, NULL, info_log );
+			glGetProgramInfoLog(shaderinfo->program_num, log_size, NULL, info_log );
 			*log = info_log;
 			return false;
 		}
 	}
 
-	glUseProgram( current_program );
 	CHECK_GL_ERRORS;
 
 	if ( log )
@@ -445,41 +554,18 @@ static bool update_shader_program( char **log )
 	return true;
 }
 
-static bool set_default_shaders( void )
+static bool setup_shaders( void )
 {
 	char *info_log;
 
-	// Clean up the existing shaders if any
-	if ( vertex_shader )
+	if (!create_shader_program(default_vertex_shader, default_fragment_shader, &perspective_shader, &info_log))
 	{
-		glDeleteShader( vertex_shader );
-		CHECK_GL_ERRORS;
-		vertex_shader = 0;
-	}
-	if ( fragment_shader )
-	{
-		glDeleteShader( fragment_shader );
-		CHECK_GL_ERRORS;
-		fragment_shader = 0;
-	}
-
-	DebugPrintf("Using default vertex shader:\n\n%s\n",default_vertex_shader);
-	vertex_shader = new_shader( GL_VERTEX_SHADER, default_vertex_shader, &info_log );
-	if ( ! vertex_shader )
-	{
-		DebugPrintf( "Failed to compile vertex shader! Info log:\n-----\n%s\n-----\n", info_log );
+		DebugPrintf( "Failed to build perspective program! Info log:\n-----\n%s\n-----\n", info_log );
 		return false;
 	}
-	DebugPrintf("Using default fragment shader:\n\n%s\n",default_fragment_shader);
-	fragment_shader = new_shader( GL_FRAGMENT_SHADER, default_fragment_shader, &info_log );
-	if ( ! fragment_shader )
+	if (!create_shader_program(ortho_vertex_shader, ortho_fragment_shader, &ortho_shader, &info_log))
 	{
-		DebugPrintf( "Failed to compile fragment shader! Info log:\n-----\n%s\n-----\n", info_log );
-		return false;
-	}
-	if ( update_shader_program( &info_log ) == false )
-	{
-		DebugPrintf( "Failed to build shader program! Info log:\n-----\n%s\n-----\n", info_log );
+		DebugPrintf( "Failed to build ortho program! Info log:\n-----\n%s\n-----\n", info_log );
 		return false;
 	}
 
@@ -499,7 +585,7 @@ static bool set_defaults( void )
 	//CHECK_GL_ERRORS;
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 #else
-	if(!set_default_shaders()) return false;
+	if(!setup_shaders()) return false;
 #endif
 	reset_cull();
 	reset_trans();
@@ -853,14 +939,24 @@ void mvp_update( GLuint current_program )
 {
 	MATRIX mvp;
 	GLuint u_mvp;
+	GLuint u_world;
 
-	if ( mvp_needs_update && ( u_mvp = glGetUniformLocation( current_program, "mvp" ) ) >= 0 )
+	if (mvp_needs_update)
 	{
-		MatrixMultiply( &world_matrix, &view_matrix, &mvp );
-		MatrixMultiply( &mvp,          &proj_matrix, &mvp );
-		glUniformMatrix4fv( u_mvp, 1, GL_FALSE, &mvp );
-		CHECK_GL_ERRORS;
-		mvp_needs_update = false;
+		if ((u_mvp = glGetUniformLocation(current_program, "mvp")) >= 0 )
+		{
+			MatrixMultiply(&world_matrix, &view_matrix, &mvp);
+			MatrixMultiply(&mvp, &proj_matrix, &mvp);
+			glUniformMatrix4fv(u_mvp, 1, GL_FALSE, &mvp);
+			CHECK_GL_ERRORS;
+			mvp_needs_update = false;
+		}
+		u_world = glGetUniformLocation(current_program, "world");
+		if (u_world >= 0)
+		{
+			glUniformMatrix4fv(u_world, 1, GL_FALSE, &world_matrix);
+			CHECK_GL_ERRORS;
+		}
 	}
 }
 #endif

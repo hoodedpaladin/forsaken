@@ -1463,8 +1463,18 @@ COLOR FindNearestCellColour( MLOADHEADER * Mloadheader,VECTOR * Pos, u_int16_t g
 	Input		:	Group the Current camera is in..
 	Output		:	nothing
 ===================================================================*/
+#if GL >= 3
+#include "SDL_opengl.h"
+GLfloat perpixel_light_positions[3 * MAX_PERPIXEL_LIGHTS];
+GLfloat perpixel_light_colors[4 * MAX_PERPIXEL_LIGHTS];
+GLuint perpixel_spotlight_data[4 * MAX_PERPIXEL_LIGHTS];
+GLuint num_active_perpixel_lights;
+GLuint num_active_perpixel_spotlights;
+#endif //GL >= 3
+
 void BuildVisibleLightList( u_int16_t Group )
 {
+#if GL < 3
 	int		light;
 	XLIGHT * XLightPnt;
 
@@ -1482,6 +1492,106 @@ void BuildVisibleLightList( u_int16_t Group )
 		}
 		light = XLights[light].Prev;
 	}
+#else //GL < 3
+	// GL >= 3: store lights in per-pixel lighting structures
+	// If there are more in the scene than we want to make per-pixel, process the rest as per-vertex lights
+
+	int		light;
+	XLIGHT * XLightPnt;
+	int perpixel_count = 0;
+	int perpixel_spot_count = 0;
+	int vertex_count = 0;
+	int discarded = 0;
+
+	for (light = 0; light < MAX_PERPIXEL_LIGHTS; light++)
+	{
+		perpixel_light_colors[4 * light + 3] = 0.0;
+	}
+
+	light = FirstXLightUsed;
+	FirstLightVisible = NULL;
+	GLfloat* pUniformPos = perpixel_light_positions;
+	GLfloat *pUniformColor = perpixel_light_colors;
+	GLfloat* pUniformSpotlight = perpixel_spotlight_data;
+
+	// Process spot lights first so they're placed into the uniform array first
+	while (light != (u_int16_t)-1)
+	{
+		XLightPnt = &XLights[light];
+
+		if (XLightPnt->Type == SPOT_LIGHT)
+		{
+			if ((Group == (u_int16_t)-1) || (XLightPnt->Visible && VisibleOverlap(Group, XLightPnt->Group, NULL)))
+			{
+				if (perpixel_count < MAX_PERPIXEL_LIGHTS)
+				{
+					perpixel_count += 1;
+					perpixel_spot_count += 1;
+					*(pUniformPos++) = XLightPnt->Pos.x;
+					*(pUniformPos++) = XLightPnt->Pos.y;
+					*(pUniformPos++) = XLightPnt->Pos.z;
+					*(pUniformColor++) = XLightPnt->r / 255.0;
+					*(pUniformColor++) = XLightPnt->g / 255.0;
+					*(pUniformColor++) = XLightPnt->b / 255.0;
+					*(pUniformColor++) = XLightPnt->Size;
+					*(pUniformSpotlight++) = XLightPnt->Dir.x;
+					*(pUniformSpotlight++) = XLightPnt->Dir.y;
+					*(pUniformSpotlight++) = XLightPnt->Dir.z;
+					*(pUniformSpotlight++) = XLightPnt->CosArc;
+				}
+				else if (vertex_count < MAX_VERTEX_LIGHTS)
+				{
+					XLightPnt->NextVisible = FirstLightVisible;
+					FirstLightVisible = XLightPnt;
+					vertex_count += 1;
+				}
+				else
+				{
+					discarded++;
+				}
+			}
+		}
+		light = XLights[light].Prev;
+	}
+
+	// Next process the point lights
+	light = FirstXLightUsed;
+	while( light != (u_int16_t ) -1 )
+	{
+		XLightPnt = &XLights[light];
+
+		if (XLightPnt->Type == POINT_LIGHT)
+		{
+			if ((Group == (u_int16_t)-1) || (XLightPnt->Visible && VisibleOverlap(Group, XLightPnt->Group, NULL)))
+			{
+				if (perpixel_count < MAX_PERPIXEL_LIGHTS)
+				{
+					perpixel_count += 1;
+					*(pUniformPos++) = XLightPnt->Pos.x;
+					*(pUniformPos++) = XLightPnt->Pos.y;
+					*(pUniformPos++) = XLightPnt->Pos.z;
+					*(pUniformColor++) = XLightPnt->r / 255.0;
+					*(pUniformColor++) = XLightPnt->g / 255.0;
+					*(pUniformColor++) = XLightPnt->b / 255.0;
+					*(pUniformColor++) = XLightPnt->Size;
+				}
+				else if (vertex_count < MAX_VERTEX_LIGHTS)
+				{
+					XLightPnt->NextVisible = FirstLightVisible;
+					FirstLightVisible = XLightPnt;
+					vertex_count += 1;
+				}
+				else
+				{
+					discarded++;
+				}
+			}
+		}
+		light = XLights[light].Prev;
+	}
+	num_active_perpixel_lights = perpixel_count;
+	num_active_perpixel_spotlights = perpixel_spot_count;
+#endif //GL < 3
 }
 
 /*===================================================================

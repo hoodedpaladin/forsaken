@@ -76,9 +76,16 @@ extern MATRIX world_matrix;
 
 void mvp_update( GLuint current_program );
 
-extern GLuint vertex_shader;
-extern GLuint fragment_shader;
-extern GLuint current_program;
+
+struct shadernums
+{
+	GLuint vert_shader_num;
+	GLuint frag_shader_num;
+	GLuint program_num;
+};
+
+extern struct shadernums perspective_shader;
+extern struct shadernums ortho_shader;
 
 LPVERTEXBUFFER _create_buffer( int size, GLenum type, GLenum gettype, GLenum usage );
 
@@ -88,6 +95,10 @@ LPVERTEXBUFFER _create_buffer( int size, GLenum type, GLenum gettype, GLenum usa
 #endif // GL != 1
 
 void FSReleaseRenderObject(RENDEROBJECT *renderObject);
+
+#if GL > 1
+void ortho_update(GLuint current_program);
+#endif
 
 #endif // RENDER_GL_SHARED_INCLUDED
 #endif // GL ENABLED

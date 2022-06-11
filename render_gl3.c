@@ -154,6 +154,12 @@ bool FSLockPretransformedVertexBuffer(RENDEROBJECT *renderObject, TLVERTEX **ver
  *     renderObject->textureGroups[group].texture
  *   - draw group->numVerts elements starting at group->startVert
  */
+#include "lights.h"
+extern GLfloat perpixel_light_positions[3 * MAX_PERPIXEL_LIGHTS];
+extern GLfloat perpixel_light_colors[4 * MAX_PERPIXEL_LIGHTS];
+extern GLuint perpixel_spotlight_data[4 * MAX_PERPIXEL_LIGHTS];
+extern GLuint num_active_perpixel_lights;
+extern GLuint num_active_perpixel_spotlights;
 
 bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool orthographic )
 {
@@ -185,6 +191,9 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 	texture_t *texdata;
 	int loc;
 	int i;
+	GLuint program_num = orthographic ? ortho_shader.program_num : perspective_shader.program_num;
+
+	glUseProgram(program_num);
 
 	glBindBuffer( GL_ARRAY_BUFFER, renderObject->lpVertexBuffer );
 
@@ -193,9 +202,6 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 	else
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
 
-	//glGetIntegerv( GL_CURRENT_PROGRAM, &current_program );
-	// assert( current_program != 0 );
-
 	CHECK_GL_ERRORS;
 
 	// Tell OpenGL about the buffer data layout
@@ -203,9 +209,12 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 	attr = orthographic ? ortho_attr : normal_attr;
 	for ( i=0; attr[i].name; i++ )
 	{
-		loc = glGetAttribLocation( current_program, attr[i].name );
+		loc = glGetAttribLocation(program_num, attr[i].name );
 		if (loc >= 0)
 		{
+#if GL >= 3
+			glEnableVertexAttribArray(loc);
+#endif
 			glVertexAttribPointer(
 				loc,
 				attr[i].components,
@@ -224,7 +233,7 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 	if ( renderObject->lpNormalBuffer )
 	{
 		glBindBuffer( GL_ARRAY_BUFFER, renderObject->lpNormalBuffer );
-		loc = glGetAttribLocation( current_program, "vnormal" );
+		loc = glGetAttribLocation(program_num, "vnormal" );
 		if (loc >= 0)
 		{
 			glVertexAttribPointer( loc, 3, GL_FLOAT, GL_FALSE, sizeof(NORMAL), 0 );
@@ -236,20 +245,16 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 
 	// Update and use the appropriate model/view/projection matrix
 	if ( orthographic )
-		ortho_update( current_program );
+		ortho_update(program_num);
 	else
-		mvp_update( current_program );
-
-	// This uniform tells the vertex shader which matrix to use
-	if ((u_ortho = glGetUniformLocation(current_program, "orthographic")) >= 0)
-		glUniform1i( u_ortho, orthographic ? GL_TRUE : GL_FALSE );
+		mvp_update(program_num);
 
 	for ( i = 0; i < renderObject->numTextureGroups; i++ )
 	{
 		group = &renderObject->textureGroups[i];
-		if ( (u_colorkey = glGetUniformLocation(current_program, "colorkeying_enabled")) >= 0 )
+		if ( (u_colorkey = glGetUniformLocation(program_num, "colorkeying_enabled")) >= 0 )
 			glUniform1i( u_colorkey, group->colourkey ? GL_TRUE : GL_FALSE );
-		if ( (u_enabletex = glGetUniformLocation(current_program, "texturing_enabled")) >= 0 )
+		if ( (u_enabletex = glGetUniformLocation(program_num, "texturing_enabled")) >= 0 )
 		{
 			glUniform1i( u_enabletex, group->texture ? GL_TRUE : GL_FALSE );
 			if ( group->texture )
@@ -263,16 +268,49 @@ bool draw_render_object( RENDEROBJECT *renderObject, int primitive_type, bool or
 
 	CHECK_GL_ERRORS;
 
+	{
+		GLuint loc;
+
+		loc = glGetUniformLocation(program_num, "light_position");
+		if (loc >= 0)
+		{
+			glUniform3fv(loc, MAX_PERPIXEL_LIGHTS, perpixel_light_positions);
+		}
+		loc = glGetUniformLocation(program_num, "light_color");
+		if (loc >= 0)
+		{
+			glUniform4fv(loc, MAX_PERPIXEL_LIGHTS, perpixel_light_colors);
+		}
+
+		loc = glGetUniformLocation(program_num, "num_lights");
+		if (loc >= 0)
+		{
+			glUniform1i(loc, num_active_perpixel_lights);
+		}
+		
+		loc = glGetUniformLocation(program_num, "num_spotlights");
+		if (loc >= 0)
+		{
+			glUniform1i(loc, num_active_perpixel_spotlights);
+		}
+
+		loc = glGetUniformLocation(program_num, "light_spotdata");
+		if (loc >= 0)
+		{
+			glUniform4fv(loc, MAX_PERPIXEL_LIGHTS, perpixel_spotlight_data);
+		}
+	}
+
 	for ( i=0; attr[i].name; i++ )
 	{
-		loc = glGetAttribLocation( current_program, attr[i].name );
+		loc = glGetAttribLocation(program_num, attr[i].name );
 		if (loc >= 0)
 			glDisableVertexAttribArray( loc );
 	}
 
 	if ( renderObject->lpNormalBuffer )
 	{
-		loc = glGetAttribLocation( current_program, "vnormal" );
+		loc = glGetAttribLocation(program_num, "vnormal" );
 		if (loc >= 0)
 			glDisableVertexAttribArray( loc );
 	}
