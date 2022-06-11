@@ -1,0 +1,13 @@
+﻿  adler32.c
+  compress.c
+  crc32.c
+  deflate.c
+  infback.c
+  inffast.c
+  inflate.c
+  inftrees.c
+  trees.c
+  uncompr.c
+  zutil.c
+  Generating Code...
+  zlib.vcxproj -> C:\Users\swins\Documents\forsaken\libs_vs\lpng1422\projects\vstudio\Debug Library\zlib.lib

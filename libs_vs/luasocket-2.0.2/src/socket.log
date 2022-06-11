@@ -1,0 +1,3 @@
+﻿auxiliar.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+     Creating library src\socket.lib and object src\socket.exp
+  socket.vcxproj -> C:\Users\swins\Documents\forsaken\libs_vs\luasocket-2.0.2\src\socket.dll

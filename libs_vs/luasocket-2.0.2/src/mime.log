@@ -1,0 +1,6 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Microsoft\VC\v160\Microsoft.CppBuild.targets(513,5): warning MSB8028: The intermediate directory (src\) contains files shared from another project (socket.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+cl : command line warning D9035: option 'Gm' has been deprecated and will be removed in a future release
+  mime.c
+mime.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+     Creating library src\mime.lib and object src\mime.exp
+  mime.vcxproj -> C:\Users\swins\Documents\forsaken\libs_vs\luasocket-2.0.2\src\mime.dll

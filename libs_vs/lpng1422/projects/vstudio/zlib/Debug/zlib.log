@@ -1,0 +1,16 @@
+﻿  adler32.c
+  compress.c
+  crc32.c
+  deflate.c
+  infback.c
+  inffast.c
+  inflate.c
+  inftrees.c
+  trees.c
+  uncompr.c
+  zutil.c
+     Creating library C:\Users\swins\Documents\forsaken\libs_vs\lpng1422\projects\vstudio\Debug\zlib.lib and object C:\Users\swins\Documents\forsaken\libs_vs\lpng1422\projects\vstudio\Debug\zlib.exp
+  Generating code
+  Not all modules are compiled with -Gy (function comdat), build without incremental LTCG.
+  Finished generating code
+  zlib.vcxproj -> C:\Users\swins\Documents\forsaken\libs_vs\lpng1422\projects\vstudio\Debug\zlib.dll
