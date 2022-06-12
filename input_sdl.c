@@ -857,6 +857,8 @@ bool handle_events( void )
 
 		case SDL_TEXTEDITING:
 		case SDL_TEXTINPUT:
+		case SDL_JOYDEVICEADDED:
+		case SDL_JOYDEVICEREMOVED:
 			// Do nothing
 			break;
 // TODO
