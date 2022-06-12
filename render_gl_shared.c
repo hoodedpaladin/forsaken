@@ -667,6 +667,12 @@ bool render_init( render_info_t * info )
 void render_cleanup( render_info_t * info )
 {
 	info->ok_to_render = false;
+	memset(&perspective_shader, 0, sizeof(perspective_shader));
+	memset(&ortho_shader, 0, sizeof(ortho_shader));
+	if (info->window)
+	{
+		SDL_DestroyWindow(info->window);
+	}
 	// ???
 }
 
