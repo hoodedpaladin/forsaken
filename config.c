@@ -273,9 +273,9 @@ USERCONFIG my_controls = {
 
 USERCONFIG *player_config = &my_controls;
 
-char * get_key_name( int i )
+char * get_scancode_name( int scancode)
 {
-	char * name = SDL_GetKeyName(i);
+	char * name = SDL_GetScancodeName(scancode);
 	if(0==strcasecmp(name,"unknown key"))
 		return NULL;
 	return convert_char( ' ', '_', 
@@ -326,7 +326,7 @@ static void init_key_map( void )
 		}
 		else
 		{
-			name = get_key_name(i);
+			name = get_scancode_name(i);
 		}
 		if(!name)
 		{
