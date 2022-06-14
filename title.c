@@ -8806,7 +8806,7 @@ void MakeModeList( MENU *Menu )
 		if( ModeList.items < MAXLISTITEMS )
 		{
 			WhichMode[ModeList.items] = i;
-			if(i==0)
+			if(render_info.Mode[i].h == 0)
 				sprintf( &ModeList.item[ModeList.items][0], "default");
 			else
 				sprintf( &ModeList.item[ModeList.items][0], "%d x %d" ,

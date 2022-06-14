@@ -50,9 +50,9 @@ bool sdl_init( void )
 	BPP should be left alone to match whatever the desktop is at.
 */
 
-#define NUMBER_MODES 21
-render_display_mode_t video_modes[NUMBER_MODES] = {
-{0,0}, // current video mode of the desktop
+#define NUMBER_MODES (sizeof(video_modes) / sizeof(video_modes[0]))
+render_display_mode_t video_modes[] = {
+//{0,0}, // current video mode of the desktop
 {640,480},
 {800,600}, // default window mode
 {1024,768},
@@ -72,7 +72,6 @@ render_display_mode_t video_modes[NUMBER_MODES] = {
 {1920,1080},
 {1920,1200},
 {2000,1500},
-{3840,2160},
 };
 
 static void init_video_modes( u_int32_t window_flags )
@@ -82,19 +81,20 @@ static void init_video_modes( u_int32_t window_flags )
 	render_info.NumModes           = NUMBER_MODES;
 
 	// in full screen then default to desktop resolution
+	// hack: don't default to desktop resolution until widescreen/large resolutions work
 	if( window_flags &
 #if SDL_VERSION_ATLEAST(2,0,0)
 		SDL_WINDOW_FULLSCREEN
 #else
 		SDL_FULLSCREEN
 #endif
-	) render_info.CurrMode = 0;
+	) render_info.CurrMode = 1;
 
 	// in window mode default to 800x600 
-	else render_info.CurrMode = 2;
+	else render_info.CurrMode = 1;
 
 	// try to find the users preferred mode
-	for( i = 1; i < render_info.NumModes; i++ ) // skip mode 0
+	for( i = 0; i < render_info.NumModes; i++ ) // (don't) skip mode 0
 	{
 		if( render_info.Mode[i].w == render_info.default_mode.w &&
 		    render_info.Mode[i].h == render_info.default_mode.h )
