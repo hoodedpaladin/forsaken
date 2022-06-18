@@ -287,6 +287,7 @@ sound_buffer_t * sound_load(char *path)
 	u_int8_t *wav_buffer;
 	sound_buffer_t * buffer;
 	char * file_path = convert_path(path);
+	Uint32 size;
 
 	// create the buffer
 	buffer = malloc(sizeof(sound_buffer_t));
@@ -309,7 +310,7 @@ sound_buffer_t * sound_load(char *path)
 		return NULL;
 	}
 
-	if( SDL_LoadWAV(file_path, &wav_spec, &wav_buffer, &wav_spec.size) == NULL )
+	if( SDL_LoadWAV(file_path, &wav_spec, &wav_buffer, &size) == NULL )
 	{
 		DebugPrintf("Could not open: %s\n", SDL_GetError());
 		alDeleteBuffers( 1, &buffer->id );
@@ -323,7 +324,7 @@ sound_buffer_t * sound_load(char *path)
 		if(wav_spec.format == AUDIO_S8)
 		{
 			int i;
-			for(i = 0; i < (int) wav_spec.size; i++)
+			for(i = 0; i < (int) size; i++)
 				wav_buffer[i] ^= 0x80; // converts S8 to U8
 			DebugPrintf("sound_buffer: converted s8 to u8\n");
 		}
@@ -340,7 +341,7 @@ sound_buffer_t * sound_load(char *path)
 		if(wav_spec.format == AUDIO_U16)
 		{
 			int i;
-			for(i = 0;i < (int)wav_spec.size/2;i++)
+			for(i = 0;i < (int)size/2;i++)
 				((u_int16_t*)wav_buffer)[i] ^= 0x8000; // converts U16 to S16
 			DebugPrintf("sound_buffer: converted u16 to s16\n");
 		}
@@ -353,7 +354,7 @@ sound_buffer_t * sound_load(char *path)
 	}
 
 	// Copy data into AL Buffer 0
-	alBufferData(buffer->id,format,wav_buffer,wav_spec.size,wav_spec.freq);
+	alBufferData(buffer->id,format,wav_buffer,size,wav_spec.freq);
 	if ((error = alGetError()) != AL_NO_ERROR)
 	{
 		DebugPrintf("alBufferData: %s\n", alGetString(error));
